@@ -1,0 +1,60 @@
+name: "Simple Kubernetes deploy"
+description: "Deploy manifest into a local Kubernetes cluster (available through kubectl)"
+author: "thesharp"
+
+inputs:
+  kubectl_version:
+    description: |
+      kubectl binary version.
+      Default "1.28.2"
+    default: "1.28.2"
+    required: false
+  manifest_filepath:
+    description: |
+      Path to a Kubernetes deployment manifest.
+      Default "kubernetes/deployment.yaml"
+    default: "kubernetes/deployment.yaml"
+    required: false
+  container_name:
+    description: |
+      Container name that would have it's image overwritten inside the deployment manifest.
+    required: true
+  image_name:
+    description: |
+      Image name that would be overwritten inside the deployment manifest.
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install kubectl
+      shell: bash
+      run: sudo curl -L "https://dl.k8s.io/release/v${{ inputs.kubectl_version }}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl && sudo chmod 755 /usr/local/bin/kubectl
+
+    - name: Install yq
+      shell: bash
+      run: sudo curl -L "https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64" -o /usr/local/bin/yq && sudo chmod 755 /usr/local/bin/yq
+
+    - name: Replace image inside the manifest
+      shell: bash
+      run: yq -i '(.spec.template.spec.containers[] | select (.name == "${{ inputs.container_name }}").image) = "${{ inputs.image_name }}"' ${{ inputs.manifest_filepath }}
+
+    - name: Deploy
+      shell: bash
+      id: kubectl-apply
+      run: echo "deployment=$(kubectl apply -f ${{ inputs.manifest_filepath }})" >> $GITHUB_OUTPUT
+
+    - name: Generate summary
+      shell: bash
+      run: |
+        echo "### Deployment status :rocket:" >> $GITHUB_STEP_SUMMARY
+        echo "```${{ steps.kubectl-apply.outputs.deployment }}```" >> $GITHUB_STEP_SUMMARY
+
+outputs:
+  kubectl-apply:
+    description: "Result of kubectl apply"
+    value: "deployment"
+
+branding:
+  icon: "truck"
+  color: "blue"
