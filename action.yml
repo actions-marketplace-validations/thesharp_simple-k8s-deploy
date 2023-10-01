@@ -48,7 +48,7 @@ runs:
       shell: bash
       run: |
         echo "### Deployment status :rocket:" >> $GITHUB_STEP_SUMMARY
-        echo "```${{ steps.kubectl-apply.outputs.deployment }}```" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`${{ steps.kubectl-apply.outputs.deployment }}\`\`\`" >> $GITHUB_STEP_SUMMARY
 
 outputs:
   kubectl-apply:
